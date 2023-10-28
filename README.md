@@ -22,5 +22,5 @@ Install the dependencies and then compile the TypeScript, `./src/app.ts`, into `
 
 ```bash
 npm install
-npm build
+npm run build
 ```
