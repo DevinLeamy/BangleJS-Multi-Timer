@@ -364,7 +364,6 @@ class TimerApp {
     }
 
     drawButtons() {
-        console.log("DRAW BUTTONS", JSON.stringify(this.timers))
         if (this.displayedTimerIsRunning() || !this.displayedTimerHasStarted()) {
             this.largeButton.draw()
         } else {
