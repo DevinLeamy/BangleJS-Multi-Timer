@@ -244,7 +244,6 @@ var TimerApp = /** @class */ (function () {
         this.timers = state.timers;
     };
     TimerApp.prototype.drawButtons = function () {
-        console.log("DRAW BUTTONS", JSON.stringify(this.timers));
         if (this.displayedTimerIsRunning() || !this.displayedTimerHasStarted()) {
             this.largeButton.draw();
         }
