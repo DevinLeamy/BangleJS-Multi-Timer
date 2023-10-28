@@ -1,2 +1,2 @@
-# espruino-ts-quickstart
-Quickstart for Espruino using typescript and Visual Studio Code IDE
+# BangleJS 2 Multi-Timer
+To time _multiple_ things.
