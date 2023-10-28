@@ -15,3 +15,12 @@ require("Storage").write("mytimer.info", {
     src: "mytimer.app.js",
 })
 ```
+
+### Build
+
+Install the dependencies and then compile the TypeScript, `./src/app.ts`, into `./src/app.js`. 
+
+```bash
+npm install
+npm build
+```
