@@ -74,7 +74,7 @@ var TimerApp = /** @class */ (function () {
         this.timers = [];
         this.displayedTimerIndex = 0;
         this.displayTextY = 20;
-        this.timeTextY = this.height * (2.0 / 5.0);
+        this.timeTextY = this.height / 2.0;
         this.lastTickTimeMS = Date.now();
         this.loadStateOrDefault();
         this.initializeButtons();
@@ -103,8 +103,13 @@ var TimerApp = /** @class */ (function () {
                     self.leftButton.onClick(x, y);
                     self.rightButton.onClick(x, y);
                 }
-                self.topLeftButton.onClick(x, y);
-                self.topRightButton.onClick(x, y);
+                // Make the navigation buttons easier to click.
+                var xx = Math.min(self.width, Math.max(0, point.x - self.width / 4.0));
+                var yy = Math.min(self.height, Math.max(0, point.y - self.height / 4.0));
+                self.topLeftButton.onClick(xx, yy);
+                xx = Math.min(self.width, Math.max(0, point.x + self.width / 4.0));
+                yy = Math.min(self.height, Math.max(0, point.y - self.height / 4.0));
+                self.topRightButton.onClick(xx, yy);
             },
             remove: function () {
                 self.pauseTimer();
@@ -116,8 +121,6 @@ var TimerApp = /** @class */ (function () {
         g.setTheme({ bg: "#000", fg: "#fff", dark: true }).clear();
         g.setColor(BLACK_COLOR);
         g.fillRect(0, 0, this.width, this.height);
-        Bangle.loadWidgets();
-        Bangle.drawWidgets();
         // These buttons don't update so they only need to be drawn once.
         this.topLeftButton.draw();
         this.topRightButton.draw();
@@ -141,11 +144,11 @@ var TimerApp = /** @class */ (function () {
         this.largeButton = new Button(0.0, (3.0 / 4.0) * this.height, this.width, this.height / 4.0, BLUE_COLOR, startOrPauseTimer, PLAY_IMG);
         this.leftButton = new Button(0.0, (3.0 / 4.0) * this.height, this.width / 2.0, this.height / 4.0, YELLOW_COLOR, resetTimer, PLAY_IMG);
         this.rightButton = new Button(this.width / 2.0, (3.0 / 4.0) * this.height, this.width / 2.0, this.height / 4.0, BLUE_COLOR, resumeTimer, PAUSE_IMG);
-        var navigatorButtonSize = this.width / 8.0;
-        this.topLeftButton = new Button(0.0, 0.0, navigatorButtonSize, navigatorButtonSize, BLUE_COLOR, function () {
+        var navigatorButtonSize = this.width / 5.0;
+        this.topLeftButton = new Button(0.0, 0.0, navigatorButtonSize, navigatorButtonSize, BLACK_COLOR, function () {
             self.gotoPreviousTimer();
         }, RESET_IMG);
-        this.topRightButton = new Button(this.width - navigatorButtonSize, 0.0, navigatorButtonSize, navigatorButtonSize, BLUE_COLOR, function () {
+        this.topRightButton = new Button(this.width - navigatorButtonSize, 0.0, navigatorButtonSize, navigatorButtonSize, BLACK_COLOR, function () {
             self.gotoNextTimer();
         }, RESET_IMG);
     };
@@ -188,16 +191,20 @@ var TimerApp = /** @class */ (function () {
         }
     };
     TimerApp.prototype.pauseDisplayedTimer = function () {
+        Bangle.buzz();
         this.displayedTimer().running = false;
     };
     TimerApp.prototype.resetDisplayedTimer = function () {
+        Bangle.buzz();
         this.displayedTimer().elapsedTime = 0.0;
         this.displayedTimer().running = false;
     };
     TimerApp.prototype.resumeDisplayedTimer = function () {
+        Bangle.buzz();
         this.displayedTimer().running = true;
     };
     TimerApp.prototype.playDisplayedTimer = function () {
+        Bangle.buzz();
         this.displayedTimer().running = true;
     };
     TimerApp.prototype.displayedTimerIsRunning = function () {

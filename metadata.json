@@ -4,13 +4,5 @@
     "version": "0.01",
     "description": "A stopwatch with multiple modes for Bangle JS 2",
     "icon": "stopwatch.png",
-    "screenshots": [],
-    "tags": "tools,app",
-    "supports": ["BANGLEJS2"],
-    "readme": "README.md",
-    "storage": [
-        { "name": "stopwatch.app.js", "url": "stopwatch.app.js" },
-        { "name": "stopwatch.img", "url": "stopwatch.icon.js", "evaluate": true }
-    ],
-    "data": [{ "name": "timer.json" }]
+    "src": "timer.app.js"
 }

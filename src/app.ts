@@ -131,7 +131,7 @@ class TimerApp {
         this.timers = []
         this.displayedTimerIndex = 0
         this.displayTextY = 20
-        this.timeTextY = this.height * (2.0 / 5.0)
+        this.timeTextY = this.height / 2.0
         this.lastTickTimeMS = Date.now()
         this.loadStateOrDefault()
         this.initializeButtons()
@@ -151,8 +151,8 @@ class TimerApp {
             mode: "custom",
             btn: () => load(),
             touch: (button, point) => {
-                const x = Math.min(self.width, Math.max(0, point.x))
-                const y = Math.min(self.height, Math.max(0, point.y))
+                let x = Math.min(self.width, Math.max(0, point.x))
+                let y = Math.min(self.height, Math.max(0, point.y))
 
                 if (self.displayedTimerIsRunning()) {
                     self.largeButton.onClick(x, y)
@@ -163,8 +163,16 @@ class TimerApp {
                     self.rightButton.onClick(x, y)
                 }
 
-                self.topLeftButton.onClick(x, y)
-                self.topRightButton.onClick(x, y)
+                // Make the navigation buttons easier to click.
+                let xx = Math.min(self.width, Math.max(0, point.x - self.width / 4.0))
+                let yy = Math.min(self.height, Math.max(0, point.y - self.height / 4.0))
+
+                self.topLeftButton.onClick(xx, yy)
+
+                xx = Math.min(self.width, Math.max(0, point.x + self.width / 4.0))
+                yy = Math.min(self.height, Math.max(0, point.y - self.height / 4.0))
+
+                self.topRightButton.onClick(xx, yy)
             },
             remove: () => {
                 self.pauseTimer()
@@ -177,8 +185,6 @@ class TimerApp {
         g.setTheme({ bg: "#000", fg: "#fff", dark: true }).clear()
         g.setColor(BLACK_COLOR)
         g.fillRect(0, 0, this.width, this.height)
-        Bangle.loadWidgets()
-        Bangle.drawWidgets()
         // These buttons don't update so they only need to be drawn once.
         this.topLeftButton.draw()
         this.topRightButton.draw()
@@ -232,13 +238,13 @@ class TimerApp {
             PAUSE_IMG
         )
 
-        const navigatorButtonSize = this.width / 8.0
+        const navigatorButtonSize = this.width / 5.0
         this.topLeftButton = new Button(
             0.0,
             0.0,
             navigatorButtonSize,
             navigatorButtonSize,
-            BLUE_COLOR,
+            BLACK_COLOR,
             function () {
                 self.gotoPreviousTimer()
             },
@@ -249,7 +255,7 @@ class TimerApp {
             0.0,
             navigatorButtonSize,
             navigatorButtonSize,
-            BLUE_COLOR,
+            BLACK_COLOR,
             function () {
                 self.gotoNextTimer()
             },
@@ -299,19 +305,23 @@ class TimerApp {
     }
 
     pauseDisplayedTimer() {
+        Bangle.buzz()
         this.displayedTimer().running = false
     }
 
     resetDisplayedTimer() {
+        Bangle.buzz()
         this.displayedTimer().elapsedTime = 0.0
         this.displayedTimer().running = false
     }
 
     resumeDisplayedTimer() {
+        Bangle.buzz()
         this.displayedTimer().running = true
     }
 
     playDisplayedTimer() {
+        Bangle.buzz()
         this.displayedTimer().running = true
     }
 
