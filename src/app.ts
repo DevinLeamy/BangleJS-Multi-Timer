@@ -116,9 +116,12 @@ class TimerApp {
     timers: TimerState[]
     displayedTimerIndex: number
     timeTextY: number
+    displayTextY: number
     largeButton!: Button
     leftButton!: Button
     rightButton!: Button
+    topLeftButton!: Button
+    topRightButton!: Button
     updateInterval: undefined | any
     lastTickTimeMS: number
 
@@ -127,6 +130,7 @@ class TimerApp {
         this.height = g.getWidth()
         this.timers = []
         this.displayedTimerIndex = 0
+        this.displayTextY = 20
         this.timeTextY = this.height * (2.0 / 5.0)
         this.lastTickTimeMS = Date.now()
         this.loadStateOrDefault()
@@ -158,10 +162,12 @@ class TimerApp {
                     self.leftButton.onClick(x, y)
                     self.rightButton.onClick(x, y)
                 }
+
+                self.topLeftButton.onClick(x, y)
+                self.topRightButton.onClick(x, y)
             },
             remove: () => {
                 self.pauseTimer()
-                // Bangle.removeListener("lcdPower", onLCDPower)
                 g.setTheme(originalTheme)
             },
         })
@@ -173,6 +179,9 @@ class TimerApp {
         g.fillRect(0, 0, this.width, this.height)
         Bangle.loadWidgets()
         Bangle.drawWidgets()
+        // These buttons don't update so they only need to be drawn once.
+        this.topLeftButton.draw()
+        this.topRightButton.draw()
     }
 
     initializeButtons() {
@@ -221,6 +230,30 @@ class TimerApp {
             BLUE_COLOR,
             resumeTimer,
             PAUSE_IMG
+        )
+
+        const navigatorButtonSize = this.width / 8.0
+        this.topLeftButton = new Button(
+            0.0,
+            0.0,
+            navigatorButtonSize,
+            navigatorButtonSize,
+            BLUE_COLOR,
+            function () {
+                self.gotoPreviousTimer()
+            },
+            RESET_IMG
+        )
+        this.topRightButton = new Button(
+            this.width - navigatorButtonSize,
+            0.0,
+            navigatorButtonSize,
+            navigatorButtonSize,
+            BLUE_COLOR,
+            function () {
+                self.gotoNextTimer()
+            },
+            RESET_IMG
         )
     }
 
@@ -297,6 +330,10 @@ class TimerApp {
         })
     }
 
+    timerCount() {
+        return this.timers.length
+    }
+
     loadStateOrDefault() {
         let state = require("Storage").readJSON(STORAGE_FILE, 1)
         if (state == undefined) {
@@ -344,6 +381,17 @@ class TimerApp {
         g.setFontAlign(0, 0)
         g.clearRect(0, this.timeTextY - 21, this.width, this.timeTextY + 21)
         g.drawString(timeText, this.width / 2, this.timeTextY)
+
+        const displayText = this.displayText()
+
+        g.setFont("Vector", 14)
+        g.clearRect(
+            this.width * 0.25,
+            this.displayTextY - 21,
+            this.width * 0.75,
+            this.displayTextY + 21
+        )
+        g.drawString(displayText, this.width / 2, this.displayTextY)
     }
 
     draw() {
@@ -358,28 +406,23 @@ class TimerApp {
             this.updateInterval = undefined
         }
     }
-}
 
-class Timer {
-    totalTime: number
-    startTime: number
-    currentTime: number
-    running: boolean
-
-    constructor(state: TimerState) {
-        this.totalTime = state.totalTime
-        this.startTime = state.startTime
-        this.currentTime = state.currentTime
-        this.running = state.running
+    gotoNextTimer() {
+        this.displayedTimerIndex = (this.displayedTimerIndex + 1) % this.timerCount()
     }
 
-    state(): TimerState {
-        return {
-            totalTime: this.totalTime,
-            startTime: this.startTime,
-            currentTime: this.currentTime,
-            running: this.running,
+    gotoPreviousTimer() {
+        this.displayedTimerIndex =
+            (this.displayedTimerIndex - 1 + this.timerCount()) % this.timerCount()
+    }
+
+    displayText(): string {
+        let text = ""
+        for (let i = 0; i < this.timerCount(); ++i) {
+            text += i == this.displayedTimerIndex ? "0" : "="
         }
+
+        return text
     }
 }
 

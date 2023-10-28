@@ -73,6 +73,7 @@ var TimerApp = /** @class */ (function () {
         this.height = g.getWidth();
         this.timers = [];
         this.displayedTimerIndex = 0;
+        this.displayTextY = 20;
         this.timeTextY = this.height * (2.0 / 5.0);
         this.lastTickTimeMS = Date.now();
         this.loadStateOrDefault();
@@ -102,10 +103,11 @@ var TimerApp = /** @class */ (function () {
                     self.leftButton.onClick(x, y);
                     self.rightButton.onClick(x, y);
                 }
+                self.topLeftButton.onClick(x, y);
+                self.topRightButton.onClick(x, y);
             },
             remove: function () {
                 self.pauseTimer();
-                // Bangle.removeListener("lcdPower", onLCDPower)
                 g.setTheme(originalTheme);
             }
         });
@@ -116,6 +118,9 @@ var TimerApp = /** @class */ (function () {
         g.fillRect(0, 0, this.width, this.height);
         Bangle.loadWidgets();
         Bangle.drawWidgets();
+        // These buttons don't update so they only need to be drawn once.
+        this.topLeftButton.draw();
+        this.topRightButton.draw();
     };
     TimerApp.prototype.initializeButtons = function () {
         var self = this;
@@ -136,6 +141,13 @@ var TimerApp = /** @class */ (function () {
         this.largeButton = new Button(0.0, (3.0 / 4.0) * this.height, this.width, this.height / 4.0, BLUE_COLOR, startOrPauseTimer, PLAY_IMG);
         this.leftButton = new Button(0.0, (3.0 / 4.0) * this.height, this.width / 2.0, this.height / 4.0, YELLOW_COLOR, resetTimer, PLAY_IMG);
         this.rightButton = new Button(this.width / 2.0, (3.0 / 4.0) * this.height, this.width / 2.0, this.height / 4.0, BLUE_COLOR, resumeTimer, PAUSE_IMG);
+        var navigatorButtonSize = this.width / 8.0;
+        this.topLeftButton = new Button(0.0, 0.0, navigatorButtonSize, navigatorButtonSize, BLUE_COLOR, function () {
+            self.gotoPreviousTimer();
+        }, RESET_IMG);
+        this.topRightButton = new Button(this.width - navigatorButtonSize, 0.0, navigatorButtonSize, navigatorButtonSize, BLUE_COLOR, function () {
+            self.gotoNextTimer();
+        }, RESET_IMG);
     };
     TimerApp.prototype.startTimer = function () {
         var self = this;
@@ -200,6 +212,9 @@ var TimerApp = /** @class */ (function () {
             timers: this.timers
         });
     };
+    TimerApp.prototype.timerCount = function () {
+        return this.timers.length;
+    };
     TimerApp.prototype.loadStateOrDefault = function () {
         var state = require("Storage").readJSON(STORAGE_FILE, 1);
         if (state == undefined) {
@@ -245,6 +260,10 @@ var TimerApp = /** @class */ (function () {
         g.setFontAlign(0, 0);
         g.clearRect(0, this.timeTextY - 21, this.width, this.timeTextY + 21);
         g.drawString(timeText, this.width / 2, this.timeTextY);
+        var displayText = this.displayText();
+        g.setFont("Vector", 14);
+        g.clearRect(this.width * 0.25, this.displayTextY - 21, this.width * 0.75, this.displayTextY + 21);
+        g.drawString(displayText, this.width / 2, this.displayTextY);
     };
     TimerApp.prototype.draw = function () {
         g.setColor(g.theme.fg);
@@ -257,24 +276,21 @@ var TimerApp = /** @class */ (function () {
             this.updateInterval = undefined;
         }
     };
-    return TimerApp;
-}());
-var Timer = /** @class */ (function () {
-    function Timer(state) {
-        this.totalTime = state.totalTime;
-        this.startTime = state.startTime;
-        this.currentTime = state.currentTime;
-        this.running = state.running;
-    }
-    Timer.prototype.state = function () {
-        return {
-            totalTime: this.totalTime,
-            startTime: this.startTime,
-            currentTime: this.currentTime,
-            running: this.running
-        };
+    TimerApp.prototype.gotoNextTimer = function () {
+        this.displayedTimerIndex = (this.displayedTimerIndex + 1) % this.timerCount();
     };
-    return Timer;
+    TimerApp.prototype.gotoPreviousTimer = function () {
+        this.displayedTimerIndex =
+            (this.displayedTimerIndex - 1 + this.timerCount()) % this.timerCount();
+    };
+    TimerApp.prototype.displayText = function () {
+        var text = "";
+        for (var i = 0; i < this.timerCount(); ++i) {
+            text += i == this.displayedTimerIndex ? "0" : "=";
+        }
+        return text;
+    };
+    return TimerApp;
 }());
 var app = new TimerApp();
 app.run();
