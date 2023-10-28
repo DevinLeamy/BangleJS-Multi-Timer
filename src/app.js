@@ -8,6 +8,9 @@ var BLACK_COLOR = "#000";
 var ICON_SCALE = g.getWidth() / 178;
 var ICON_SIZE_IN_PIXELS = 24;
 var UPDATE_DELAY_MS = 100;
+function zeroPadded(n) {
+    return ("0" + n).substr(-2);
+}
 function convertTimeToText(time) {
     var hours = Math.floor(time / 3600000);
     var minutes = Math.floor(time / 60000) % 60;
@@ -17,7 +20,7 @@ function convertTimeToText(time) {
         return ("0" + minutes).substr(-2) + ":" + ("0" + seconds).substr(-2) + "." + tenthsOfASecond;
     }
     else {
-        return "0" + hours + ":" + ("0" + minutes).substr(-2) + ":" + ("0" + seconds).substr(-2);
+        return zeroPadded(hours) + ":" + zeroPadded(minutes) + ":" + zeroPadded(seconds);
     }
 }
 var Button = /** @class */ (function () {
@@ -198,24 +201,32 @@ var TimerApp = /** @class */ (function () {
         });
     };
     TimerApp.prototype.loadStateOrDefault = function () {
-        this.timers = [
-            {
-                elapsedTime: 0.0,
-                running: false
-            },
-            {
-                elapsedTime: 0.0,
-                running: false
-            },
-            {
-                elapsedTime: 0.0,
-                running: false
-            },
-            {
-                elapsedTime: 0.0,
-                running: false
-            },
-        ];
+        var state = require("Storage").readJSON(STORAGE_FILE, 1);
+        if (state == undefined) {
+            state = {
+                displayedTimerIndex: 0,
+                timers: [
+                    {
+                        elapsedTime: 0.0,
+                        running: false
+                    },
+                    {
+                        elapsedTime: 0.0,
+                        running: false
+                    },
+                    {
+                        elapsedTime: 0.0,
+                        running: false
+                    },
+                    {
+                        elapsedTime: 0.0,
+                        running: false
+                    },
+                ]
+            };
+        }
+        this.displayedTimerIndex = state.displayedTimerIndex;
+        this.timers = state.timers;
     };
     TimerApp.prototype.drawButtons = function () {
         console.log("DRAW BUTTONS", JSON.stringify(this.timers));

@@ -18,6 +18,10 @@ const ICON_SCALE = g.getWidth() / 178
 const ICON_SIZE_IN_PIXELS = 24
 const UPDATE_DELAY_MS = 100
 
+function zeroPadded(n: number): string {
+    return ("0" + n).substr(-2)
+}
+
 function convertTimeToText(time: number): string {
     let hours = Math.floor(time / 3600000)
     let minutes = Math.floor(time / 60000) % 60
@@ -27,7 +31,7 @@ function convertTimeToText(time: number): string {
     if (hours == 0) {
         return ("0" + minutes).substr(-2) + ":" + ("0" + seconds).substr(-2) + "." + tenthsOfASecond
     } else {
-        return "0" + hours + ":" + ("0" + minutes).substr(-2) + ":" + ("0" + seconds).substr(-2)
+        return `${zeroPadded(hours)}:${zeroPadded(minutes)}:${zeroPadded(seconds)}`
     }
 }
 
@@ -294,24 +298,32 @@ class TimerApp {
     }
 
     loadStateOrDefault() {
-        this.timers = [
-            {
-                elapsedTime: 0.0,
-                running: false,
-            },
-            {
-                elapsedTime: 0.0,
-                running: false,
-            },
-            {
-                elapsedTime: 0.0,
-                running: false,
-            },
-            {
-                elapsedTime: 0.0,
-                running: false,
-            },
-        ]
+        let state = require("Storage").readJSON(STORAGE_FILE, 1)
+        if (state == undefined) {
+            state = {
+                displayedTimerIndex: 0,
+                timers: [
+                    {
+                        elapsedTime: 0.0,
+                        running: false,
+                    },
+                    {
+                        elapsedTime: 0.0,
+                        running: false,
+                    },
+                    {
+                        elapsedTime: 0.0,
+                        running: false,
+                    },
+                    {
+                        elapsedTime: 0.0,
+                        running: false,
+                    },
+                ],
+            }
+        }
+        this.displayedTimerIndex = state.displayedTimerIndex
+        this.timers = state.timers
     }
 
     drawButtons() {
