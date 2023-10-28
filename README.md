@@ -28,6 +28,6 @@ npm build
 ### Rad Usage Shots
 
 <p align="center">
-  <img src="https://github.com/DevinLeamy/BangleJS-Multi-Timer/assets/45083086/774f5e0a-7f8c-4b61-a1c4-56d080e83f55" width="300" alt="one" />
-  <img src="https://github.com/DevinLeamy/BangleJS-Multi-Timer/assets/45083086/b39c9c86-f2e6-4b7a-8dc7-93567ad0d4eb" width="300" alt="two" />
+  <img src="https://github.com/DevinLeamy/BangleJS-Multi-Timer/assets/45083086/a96bfdf9-491f-4ba1-b0fb-861612cadbae" width="300" alt="one" />
+  <img src="https://github.com/DevinLeamy/BangleJS-Multi-Timer/assets/45083086/2c698dc9-c3b3-4dee-8a07-5dda00322677" width="300" alt="two" />
 </p>
