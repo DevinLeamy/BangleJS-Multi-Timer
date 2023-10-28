@@ -71,17 +71,14 @@ var TimerApp = /** @class */ (function () {
         this.timers = [];
         this.displayedTimerIndex = 0;
         this.timeTextY = this.height * (2.0 / 5.0);
+        this.lastTickTimeMS = Date.now();
         this.loadStateOrDefault();
         this.initializeButtons();
         this.initializeScreen();
         this.initApp();
     }
     TimerApp.prototype.run = function () {
-        this.draw();
-        var self = this;
-        this.updateInterval = setInterval(function () {
-            self.draw();
-        }, UPDATE_DELAY_MS);
+        this.startTimer();
     };
     TimerApp.prototype.initApp = function () {
         var self = this;
@@ -90,28 +87,18 @@ var TimerApp = /** @class */ (function () {
             mode: "custom",
             btn: function () { return load(); },
             touch: function (button, point) {
-                var x = point.x;
-                var y = point.y;
-                // adjust for outside the dimension of the screen
-                // http://forum.espruino.com/conversations/371867/#comment16406025
-                if (y > self.height)
-                    y = self.height;
-                if (y < 0)
-                    y = 0;
-                if (x > self.width)
-                    x = self.width;
-                if (x < 0)
-                    x = 0;
-                // not running, and reset
-                var timer = self.displayedTimer();
-                self.largeButton.onClick(x, y);
-                // if (!running && tCurrent == tTotal && bigPlayPauseBtn.check(x, y)) return;
-                // // paused and hit play
-                // if (!running && tCurrent != tTotal && smallPlayPauseBtn.check(x, y)) return;
-                // // paused and press reset
-                // if (!running && tCurrent != tTotal && resetBtn.check(x, y)) return;
-                // // must be running
-                // if (running && bigPlayPauseBtn.check(x, y)) return;
+                var x = Math.min(self.width, Math.max(0, point.x));
+                var y = Math.min(self.height, Math.max(0, point.y));
+                if (self.displayedTimerIsRunning()) {
+                    self.largeButton.onClick(x, y);
+                }
+                else if (!self.displayedTimerIsRunning() && !self.displayedTimerHasStarted()) {
+                    self.largeButton.onClick(x, y);
+                }
+                else {
+                    self.leftButton.onClick(x, y);
+                    self.rightButton.onClick(x, y);
+                }
             },
             remove: function () {
                 self.pauseTimer();
@@ -121,33 +108,88 @@ var TimerApp = /** @class */ (function () {
         });
     };
     TimerApp.prototype.initializeScreen = function () {
-        Bangle.loadWidgets();
-        Bangle.drawWidgets();
+        g.setTheme({ bg: "#000", fg: "#fff", dark: true }).clear();
         g.setColor(BLACK_COLOR);
         g.fillRect(0, 0, this.width, this.height);
+        Bangle.loadWidgets();
+        Bangle.drawWidgets();
     };
     TimerApp.prototype.initializeButtons = function () {
-        function largeButtonClick() {
-            console.log("BIG BUTTON");
+        var self = this;
+        function startOrPauseTimer() {
+            if (self.displayedTimerIsRunning()) {
+                self.pauseDisplayedTimer();
+            }
+            else {
+                self.playDisplayedTimer();
+            }
         }
-        function leftButtonClick() {
-            console.log("LEFT BUTTON");
+        function resetTimer() {
+            self.resetDisplayedTimer();
         }
-        function rightButtonClick() {
-            console.log("RIGHT BUTTON");
+        function resumeTimer() {
+            self.resumeDisplayedTimer();
         }
-        this.largeButton = new Button(0.0, (3.0 / 4.0) * this.height, this.width, this.height / 4.0, BLUE_COLOR, largeButtonClick, PLAY_IMG);
-        this.leftButton = new Button(0.0, (3.0 / 4.0) * this.height, this.width / 2.0, this.height / 4.0, BLUE_COLOR, leftButtonClick, PLAY_IMG);
-        this.rightButton = new Button(this.width / 2.0, (3.0 / 4.0) * this.height, this.width / 2.0, this.height / 4.0, BLUE_COLOR, rightButtonClick, PAUSE_IMG);
+        this.largeButton = new Button(0.0, (3.0 / 4.0) * this.height, this.width, this.height / 4.0, BLUE_COLOR, startOrPauseTimer, PLAY_IMG);
+        this.leftButton = new Button(0.0, (3.0 / 4.0) * this.height, this.width / 2.0, this.height / 4.0, YELLOW_COLOR, resetTimer, PLAY_IMG);
+        this.rightButton = new Button(this.width / 2.0, (3.0 / 4.0) * this.height, this.width / 2.0, this.height / 4.0, BLUE_COLOR, resumeTimer, PAUSE_IMG);
     };
-    TimerApp.prototype.resumeTimer = function () {
+    TimerApp.prototype.startTimer = function () {
         var self = this;
         this.updateInterval = setInterval(function () {
-            self.draw();
+            var now = Date.now();
+            var dt = now - self.lastTickTimeMS;
+            self.lastTickTimeMS = now;
+            self.update(dt);
         }, UPDATE_DELAY_MS);
     };
     TimerApp.prototype.displayedTimer = function () {
         return this.timers[this.displayedTimerIndex];
+    };
+    TimerApp.prototype.update = function (dt) {
+        this.updateTimers(dt);
+        this.updateButtons();
+        this.draw();
+        this.save();
+    };
+    TimerApp.prototype.updateTimers = function (dt) {
+        for (var _i = 0, _a = this.timers; _i < _a.length; _i++) {
+            var timer = _a[_i];
+            if (timer.running) {
+                timer.elapsedTime += dt;
+            }
+        }
+    };
+    TimerApp.prototype.updateButtons = function () {
+        if (this.displayedTimerIsRunning()) {
+            this.largeButton.setImage(PAUSE_IMG);
+            this.leftButton.setImage(RESET_IMG);
+            this.rightButton.setImage(PLAY_IMG);
+        }
+        else {
+            this.largeButton.setImage(PLAY_IMG);
+            this.leftButton.setImage(RESET_IMG);
+            this.rightButton.setImage(PLAY_IMG);
+        }
+    };
+    TimerApp.prototype.pauseDisplayedTimer = function () {
+        this.displayedTimer().running = false;
+    };
+    TimerApp.prototype.resetDisplayedTimer = function () {
+        this.displayedTimer().elapsedTime = 0.0;
+        this.displayedTimer().running = false;
+    };
+    TimerApp.prototype.resumeDisplayedTimer = function () {
+        this.displayedTimer().running = true;
+    };
+    TimerApp.prototype.playDisplayedTimer = function () {
+        this.displayedTimer().running = true;
+    };
+    TimerApp.prototype.displayedTimerIsRunning = function () {
+        return this.displayedTimer().running;
+    };
+    TimerApp.prototype.displayedTimerHasStarted = function () {
+        return this.displayedTimer().elapsedTime > 0.0;
     };
     TimerApp.prototype.save = function () {
         require("Storage").writeJSON(STORAGE_FILE, {
@@ -158,17 +200,26 @@ var TimerApp = /** @class */ (function () {
     TimerApp.prototype.loadStateOrDefault = function () {
         this.timers = [
             {
-                startTime: 0.0,
-                currentTime: 3000.0,
-                totalTime: 5000.0,
-                running: true
+                elapsedTime: 0.0,
+                running: false
+            },
+            {
+                elapsedTime: 0.0,
+                running: false
+            },
+            {
+                elapsedTime: 0.0,
+                running: false
+            },
+            {
+                elapsedTime: 0.0,
+                running: false
             },
         ];
     };
     TimerApp.prototype.drawButtons = function () {
         console.log("DRAW BUTTONS", JSON.stringify(this.timers));
-        var timer = this.displayedTimer();
-        if (timer.running) {
+        if (this.displayedTimerIsRunning() || !this.displayedTimerHasStarted()) {
             this.largeButton.draw();
         }
         else {
@@ -178,8 +229,7 @@ var TimerApp = /** @class */ (function () {
     };
     TimerApp.prototype.drawTime = function () {
         var timer = this.displayedTimer();
-        var totalTime = Date.now();
-        var timeText = convertTimeToText(totalTime);
+        var timeText = convertTimeToText(timer.elapsedTime);
         g.setFont("Vector", 38);
         g.setFontAlign(0, 0);
         g.clearRect(0, this.timeTextY - 21, this.width, this.timeTextY + 21);

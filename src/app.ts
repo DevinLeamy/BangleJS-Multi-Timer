@@ -32,9 +32,7 @@ function convertTimeToText(time: number): string {
 }
 
 interface TimerState {
-    totalTime: number
-    startTime: number
-    currentTime: number
+    elapsedTime: number
     running: boolean
 }
 
@@ -118,6 +116,7 @@ class TimerApp {
     leftButton!: Button
     rightButton!: Button
     updateInterval: undefined | any
+    lastTickTimeMS: number
 
     constructor() {
         this.width = g.getWidth()
@@ -125,6 +124,7 @@ class TimerApp {
         this.timers = []
         this.displayedTimerIndex = 0
         this.timeTextY = this.height * (2.0 / 5.0)
+        this.lastTickTimeMS = Date.now()
         this.loadStateOrDefault()
         this.initializeButtons()
         this.initializeScreen()
@@ -132,11 +132,7 @@ class TimerApp {
     }
 
     run() {
-        this.draw()
-        const self = this
-        this.updateInterval = setInterval(function () {
-            self.draw()
-        }, UPDATE_DELAY_MS)
+        this.startTimer()
     }
 
     initApp() {
@@ -147,29 +143,17 @@ class TimerApp {
             mode: "custom",
             btn: () => load(),
             touch: (button, point) => {
-                let x = point.x
-                let y = point.y
+                const x = Math.min(self.width, Math.max(0, point.x))
+                const y = Math.min(self.height, Math.max(0, point.y))
 
-                // adjust for outside the dimension of the screen
-                // http://forum.espruino.com/conversations/371867/#comment16406025
-                if (y > self.height) y = self.height
-                if (y < 0) y = 0
-                if (x > self.width) x = self.width
-                if (x < 0) x = 0
-
-                // not running, and reset
-                const timer = self.displayedTimer()
-                self.largeButton.onClick(x, y)
-                // if (!running && tCurrent == tTotal && bigPlayPauseBtn.check(x, y)) return;
-
-                // // paused and hit play
-                // if (!running && tCurrent != tTotal && smallPlayPauseBtn.check(x, y)) return;
-
-                // // paused and press reset
-                // if (!running && tCurrent != tTotal && resetBtn.check(x, y)) return;
-
-                // // must be running
-                // if (running && bigPlayPauseBtn.check(x, y)) return;
+                if (self.displayedTimerIsRunning()) {
+                    self.largeButton.onClick(x, y)
+                } else if (!self.displayedTimerIsRunning() && !self.displayedTimerHasStarted()) {
+                    self.largeButton.onClick(x, y)
+                } else {
+                    self.leftButton.onClick(x, y)
+                    self.rightButton.onClick(x, y)
+                }
             },
             remove: () => {
                 self.pauseTimer()
@@ -180,21 +164,29 @@ class TimerApp {
     }
 
     initializeScreen() {
-        Bangle.loadWidgets()
-        Bangle.drawWidgets()
+        g.setTheme({ bg: "#000", fg: "#fff", dark: true }).clear()
         g.setColor(BLACK_COLOR)
         g.fillRect(0, 0, this.width, this.height)
+        Bangle.loadWidgets()
+        Bangle.drawWidgets()
     }
 
     initializeButtons() {
-        function largeButtonClick() {
-            console.log("BIG BUTTON")
+        const self = this
+        function startOrPauseTimer() {
+            if (self.displayedTimerIsRunning()) {
+                self.pauseDisplayedTimer()
+            } else {
+                self.playDisplayedTimer()
+            }
         }
-        function leftButtonClick() {
-            console.log("LEFT BUTTON")
+
+        function resetTimer() {
+            self.resetDisplayedTimer()
         }
-        function rightButtonClick() {
-            console.log("RIGHT BUTTON")
+
+        function resumeTimer() {
+            self.resumeDisplayedTimer()
         }
 
         this.largeButton = new Button(
@@ -203,7 +195,7 @@ class TimerApp {
             this.width,
             this.height / 4.0,
             BLUE_COLOR,
-            largeButtonClick,
+            startOrPauseTimer,
             PLAY_IMG
         )
 
@@ -212,8 +204,8 @@ class TimerApp {
             (3.0 / 4.0) * this.height,
             this.width / 2.0,
             this.height / 4.0,
-            BLUE_COLOR,
-            leftButtonClick,
+            YELLOW_COLOR,
+            resetTimer,
             PLAY_IMG
         )
 
@@ -223,20 +215,75 @@ class TimerApp {
             this.width / 2.0,
             this.height / 4.0,
             BLUE_COLOR,
-            rightButtonClick,
+            resumeTimer,
             PAUSE_IMG
         )
     }
 
-    resumeTimer() {
+    startTimer() {
         const self = this
         this.updateInterval = setInterval(function () {
-            self.draw()
+            const now = Date.now()
+            const dt = now - self.lastTickTimeMS
+            self.lastTickTimeMS = now
+            self.update(dt)
         }, UPDATE_DELAY_MS)
     }
 
     displayedTimer(): TimerState {
         return this.timers[this.displayedTimerIndex]
+    }
+
+    update(dt: number) {
+        this.updateTimers(dt)
+        this.updateButtons()
+        this.draw()
+        this.save()
+    }
+
+    updateTimers(dt: number) {
+        for (let timer of this.timers) {
+            if (timer.running) {
+                timer.elapsedTime += dt
+            }
+        }
+    }
+
+    updateButtons() {
+        if (this.displayedTimerIsRunning()) {
+            this.largeButton.setImage(PAUSE_IMG)
+            this.leftButton.setImage(RESET_IMG)
+            this.rightButton.setImage(PLAY_IMG)
+        } else {
+            this.largeButton.setImage(PLAY_IMG)
+            this.leftButton.setImage(RESET_IMG)
+            this.rightButton.setImage(PLAY_IMG)
+        }
+    }
+
+    pauseDisplayedTimer() {
+        this.displayedTimer().running = false
+    }
+
+    resetDisplayedTimer() {
+        this.displayedTimer().elapsedTime = 0.0
+        this.displayedTimer().running = false
+    }
+
+    resumeDisplayedTimer() {
+        this.displayedTimer().running = true
+    }
+
+    playDisplayedTimer() {
+        this.displayedTimer().running = true
+    }
+
+    displayedTimerIsRunning(): boolean {
+        return this.displayedTimer().running
+    }
+
+    displayedTimerHasStarted(): boolean {
+        return this.displayedTimer().elapsedTime > 0.0
     }
 
     save() {
@@ -249,18 +296,27 @@ class TimerApp {
     loadStateOrDefault() {
         this.timers = [
             {
-                startTime: 0.0,
-                currentTime: 3000.0,
-                totalTime: 5000.0,
-                running: true,
+                elapsedTime: 0.0,
+                running: false,
+            },
+            {
+                elapsedTime: 0.0,
+                running: false,
+            },
+            {
+                elapsedTime: 0.0,
+                running: false,
+            },
+            {
+                elapsedTime: 0.0,
+                running: false,
             },
         ]
     }
 
     drawButtons() {
         console.log("DRAW BUTTONS", JSON.stringify(this.timers))
-        const timer = this.displayedTimer()
-        if (timer.running) {
+        if (this.displayedTimerIsRunning() || !this.displayedTimerHasStarted()) {
             this.largeButton.draw()
         } else {
             this.leftButton.draw()
@@ -270,8 +326,7 @@ class TimerApp {
 
     drawTime() {
         const timer = this.displayedTimer()
-        const totalTime = Date.now()
-        const timeText = convertTimeToText(totalTime)
+        const timeText = convertTimeToText(timer.elapsedTime)
 
         g.setFont("Vector", 38)
         g.setFontAlign(0, 0)
